@@ -59,6 +59,16 @@ cargo install --path .
 - `https://youtu.be/...`
 - `https://www.youtube.com/shorts/...`
 
+## Behavior
+
+### Queueing
+
+Downloads run one at a time. If you copy a new link while a download is in progress, it will be picked up automatically once the current download finishes. You don't need to wait — just keep copying links and they will be processed in order.
+
+### Playlist links
+
+If you copy a link that contains a playlist parameter (e.g. `watch?v=xxx&list=yyy`), only the single video in the URL is downloaded, not the entire playlist.
+
 ## License
 
 MIT
