@@ -15,6 +15,14 @@ struct Cli {
     /// Destination directory for downloaded MP3 files
     #[arg(short = 'd')]
     dest: PathBuf,
+
+    /// Use cookies from browser to avoid bot detection (e.g. chrome, firefox, safari, edge)
+    #[arg(short = 'c', long = "cookies", default_value = "chrome")]
+    browser: String,
+
+    /// Disable browser cookies
+    #[arg(long = "no-cookies", default_value_t = false)]
+    no_cookies: bool,
 }
 
 fn is_youtube_url(text: &str) -> bool {
@@ -24,17 +32,25 @@ fn is_youtube_url(text: &str) -> bool {
     re.is_match(text.trim())
 }
 
-async fn download_mp3(url: &str, dest: &PathBuf) -> Result<(), String> {
+async fn download_mp3(url: &str, dest: &PathBuf, browser: &str, use_cookies: bool) -> Result<(), String> {
     let output_template = dest.join("%(title)s.%(ext)s").to_string_lossy().to_string();
 
+    let mut args = vec![
+        "--no-check-certificates".to_string(),
+        "-x".to_string(),
+        "--audio-format".to_string(), "mp3".to_string(),
+        "-o".to_string(), output_template,
+    ];
+
+    if use_cookies {
+        args.push("--cookies-from-browser".to_string());
+        args.push(browser.to_string());
+    }
+
+    args.push(url.to_string());
+
     let mut child = tokio::process::Command::new("yt-dlp")
-        .args([
-            "--no-check-certificates",
-            "-x",
-            "--audio-format", "mp3",
-            "-o", &output_template,
-            url,
-        ])
+        .args(&args)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .spawn()
@@ -53,12 +69,17 @@ async fn download_mp3(url: &str, dest: &PathBuf) -> Result<(), String> {
 async fn main() {
     let cli = Cli::parse();
     let dest = cli.dest;
+    let browser = cli.browser;
+    let use_cookies = !cli.no_cookies;
 
     if !dest.exists() {
         std::fs::create_dir_all(&dest).expect("Failed to create destination directory");
     }
 
     println!("y2 - YouTube MP3 Downloader");
+    if use_cookies {
+        println!("Using cookies from: {}", browser);
+    }
     println!("Watching clipboard... (Ctrl+C to stop)");
     println!("Download directory: {}", dest.display());
 
@@ -103,7 +124,7 @@ async fn main() {
                 println!("Downloading: {}", url);
             }
 
-            match download_mp3(&url, &dest).await {
+            match download_mp3(&url, &dest, &browser, use_cookies).await {
                 Ok(()) => {
                     println!("Download complete!");
                 }
