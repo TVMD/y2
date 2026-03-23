@@ -18,38 +18,35 @@ y2 -d ~/Music
 
 ## Installation
 
-### Prerequisites
+### Option 1: Install script (recommended)
 
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
-- [ffmpeg](https://ffmpeg.org/)
-- [Rust](https://rustup.rs/) (for building)
+Downloads a prebuilt binary — no Rust required. The script also installs the runtime dependencies (yt-dlp and ffmpeg) for you.
 
-### One-liner
+```sh
+curl -fsSL https://raw.githubusercontent.com/TVMD/y2/main/install.sh | bash
+```
+
+Or clone and run locally:
 
 ```sh
 git clone https://github.com/TVMD/y2.git && cd y2 && ./install.sh
 ```
 
-The install script handles everything — installs yt-dlp, ffmpeg, Rust (if needed), and builds `y2`.
+### Option 2: Build from source
 
-### Manual
+Requires [Rust](https://rustup.rs/) toolchain. You still need yt-dlp and ffmpeg installed.
 
 ```sh
+# Install dependencies
 # macOS
 brew install yt-dlp ffmpeg
-
 # Ubuntu/Debian
-sudo apt install ffmpeg
-sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
-
+sudo apt install ffmpeg && sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && sudo chmod a+rx /usr/local/bin/yt-dlp
 # Arch
 sudo pacman -S ffmpeg yt-dlp
-```
 
-Then build:
-
-```sh
+# Build and install
+git clone https://github.com/TVMD/y2.git && cd y2
 cargo install --path .
 ```
 
