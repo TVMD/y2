@@ -1,10 +1,13 @@
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::Arc;
 use std::time::Duration;
 
 use arboard::Clipboard;
 use clap::Parser;
 use regex::Regex;
+use tokio::sync::Mutex;
 
 #[derive(Parser)]
 #[command(name = "y2", about = "YouTube to MP3 clipboard watcher")]
@@ -59,33 +62,57 @@ async fn main() {
     println!("Watching clipboard... (Ctrl+C to stop)");
     println!("Download directory: {}", dest.display());
 
-    let mut clipboard = Clipboard::new().expect("Failed to access clipboard");
-    let mut last_url = String::new();
+    let queue: Arc<Mutex<VecDeque<String>>> = Arc::new(Mutex::new(VecDeque::new()));
+    let queue_watcher = Arc::clone(&queue);
 
-    loop {
-        if let Ok(text) = clipboard.get_text() {
-            let text = text.trim().to_string();
-            if is_youtube_url(&text) && text != last_url {
-                last_url = text.clone();
-                println!("\nFound YouTube URL: {}", last_url);
-                println!("Downloading as MP3...");
+    // Clipboard watcher task — always running
+    tokio::spawn(async move {
+        let mut clipboard = Clipboard::new().expect("Failed to access clipboard");
+        let mut last_url = String::new();
 
-                match download_mp3(&last_url, &dest).await {
-                    Ok(()) => {
-                        println!("Download complete!");
-                        if clipboard.set_text("").is_ok() {
-                            println!("Clipboard cleared.");
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Download failed: {}", e);
+        loop {
+            if let Ok(text) = clipboard.get_text() {
+                let text = text.trim().to_string();
+                if is_youtube_url(&text) && text != last_url {
+                    last_url = text.clone();
+                    let mut q = queue_watcher.lock().await;
+                    if !q.contains(&text) {
+                        println!("\nQueued: {}", text);
+                        q.push_back(text);
+                        // Clear clipboard immediately
+                        let _ = clipboard.set_text("");
                     }
                 }
-
-                println!("Watching clipboard...");
             }
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
+    });
 
-        tokio::time::sleep(Duration::from_secs(1)).await;
+    // Download loop — processes queue one at a time
+    loop {
+        let url = {
+            let mut q = queue.lock().await;
+            q.pop_front()
+        };
+
+        if let Some(url) = url {
+            let remaining = queue.lock().await.len();
+            if remaining > 0 {
+                println!("Downloading: {} ({} more in queue)", url, remaining);
+            } else {
+                println!("Downloading: {}", url);
+            }
+
+            match download_mp3(&url, &dest).await {
+                Ok(()) => {
+                    println!("Download complete!");
+                }
+                Err(e) => {
+                    eprintln!("Download failed: {}", e);
+                }
+            }
+        } else {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
     }
 }

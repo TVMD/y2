@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
+# Re-exec from a temp file so stdin is free (fixes curl | bash hanging)
+if [ -z "$_Y2_REEXEC" ]; then
+    TMP_SCRIPT=$(mktemp)
+    cat > "$TMP_SCRIPT" < /dev/stdin
+    _Y2_REEXEC=1 bash "$TMP_SCRIPT"
+    EXIT_CODE=$?
+    rm -f "$TMP_SCRIPT"
+    exit $EXIT_CODE
+fi
+
 REPO="TVMD/y2"
 INSTALL_DIR="/usr/local/bin"
 
@@ -15,10 +25,10 @@ ARCH="$(uname -m)"
 install_deps_mac() {
     if ! command -v brew &>/dev/null; then
         echo "Installing Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     echo "Installing yt-dlp and ffmpeg via Homebrew..."
-    brew install yt-dlp ffmpeg < /dev/null 2>/dev/null || brew upgrade yt-dlp ffmpeg < /dev/null 2>/dev/null || true
+    brew install yt-dlp ffmpeg 2>/dev/null || brew upgrade yt-dlp ffmpeg 2>/dev/null || true
 }
 
 install_deps_linux() {
