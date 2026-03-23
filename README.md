@@ -62,9 +62,9 @@ cargo install --path .
 
 Downloads run one at a time. If you copy a new link while a download is in progress, it will be picked up automatically once the current download finishes. You don't need to wait — just keep copying links and they will be processed in order.
 
-### Playlist links
+### Playlist / Mix links
 
-If you copy a link that contains a playlist parameter (e.g. `watch?v=xxx&list=yyy`), only the single video in the URL is downloaded, not the entire playlist.
+If you copy a YouTube Mix or Radio URL (e.g. `watch?v=xxx&list=RDMMxxx&start_radio=1`), **yt-dlp will download every track in that mix** — this could be 50+ songs. Be careful when copying links from YouTube's "Mix" or "Radio" auto-playlists. Make sure the URL you copy is for a single video, not an entire mix.
 
 ## License
 
