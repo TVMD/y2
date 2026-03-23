@@ -15,10 +15,10 @@ ARCH="$(uname -m)"
 install_deps_mac() {
     if ! command -v brew &>/dev/null; then
         echo "Installing Homebrew..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" < /dev/null
     fi
     echo "Installing yt-dlp and ffmpeg via Homebrew..."
-    brew install yt-dlp ffmpeg 2>/dev/null || brew upgrade yt-dlp ffmpeg 2>/dev/null || true
+    brew install yt-dlp ffmpeg < /dev/null 2>/dev/null || brew upgrade yt-dlp ffmpeg < /dev/null 2>/dev/null || true
 }
 
 install_deps_linux() {
