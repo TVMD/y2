@@ -23,6 +23,10 @@ struct Cli {
     /// Disable browser cookies
     #[arg(long = "no-cookies", default_value_t = false)]
     no_cookies: bool,
+
+    /// Max number of songs to download per playlist URL
+    #[arg(long = "max")]
+    max: Option<u32>,
 }
 
 fn is_youtube_url(text: &str) -> bool {
@@ -32,7 +36,7 @@ fn is_youtube_url(text: &str) -> bool {
     re.is_match(text.trim())
 }
 
-async fn download_mp3(url: &str, dest: &PathBuf, browser: &str, use_cookies: bool) -> Result<(), String> {
+async fn download_mp3(url: &str, dest: &PathBuf, browser: &str, use_cookies: bool, max: Option<u32>) -> Result<(), String> {
     let output_template = dest.join("%(title)s.%(ext)s").to_string_lossy().to_string();
 
     let mut args = vec![
@@ -45,6 +49,11 @@ async fn download_mp3(url: &str, dest: &PathBuf, browser: &str, use_cookies: boo
     if use_cookies {
         args.push("--cookies-from-browser".to_string());
         args.push(browser.to_string());
+    }
+
+    if let Some(max) = max {
+        args.push("--playlist-end".to_string());
+        args.push(max.to_string());
     }
 
     args.push(url.to_string());
@@ -71,6 +80,7 @@ async fn main() {
     let dest = cli.dest;
     let browser = cli.browser;
     let use_cookies = !cli.no_cookies;
+    let max = cli.max;
 
     if !dest.exists() {
         std::fs::create_dir_all(&dest).expect("Failed to create destination directory");
@@ -79,6 +89,9 @@ async fn main() {
     println!("y2 - YouTube MP3 Downloader");
     if use_cookies {
         println!("Using cookies from: {}", browser);
+    }
+    if let Some(max) = max {
+        println!("Max songs per playlist: {}", max);
     }
     println!("Watching clipboard... (Ctrl+C to stop)");
     println!("Download directory: {}", dest.display());
@@ -124,7 +137,7 @@ async fn main() {
                 println!("Downloading: {}", url);
             }
 
-            match download_mp3(&url, &dest, &browser, use_cookies).await {
+            match download_mp3(&url, &dest, &browser, use_cookies, max).await {
                 Ok(()) => {
                     println!("Download complete!");
                 }
